@@ -8,10 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi import Depends, FastAPI, HTTPException, Request
 from starlette.websockets import WebSocket
 from pydantic import BaseModel
-
-
-def dsn():
-    return "dbname=fast_food_db user=food_user password=password host=172.17.0.1"
+from .config import settings
 
 app = FastAPI()
 
@@ -63,7 +60,7 @@ class WebSocketOrders(WebSocketEndpoint):
 
     @asyncio.coroutine
     async def db_events(self, data: dict, channel: str):
-        async with aiopg.create_pool(dsn()) as pool:
+        async with aiopg.create_pool(settings.SQLALCHEMY_DATABASE_URI) as pool:
             async with pool.acquire() as conn:
                 try:
                     await asyncio.gather(
