@@ -1,11 +1,38 @@
 version: '3.8'
 
 services:
-  srlabnotifier:
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: fast_food_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  main-app:
     build: .
-    # command: sh -c "tail -F anything" # debug
     command: >
-      sh -c "uvicorn main:app --reload"
-    container_name: srlabnotifier
+      sh -c "uvicorn fastfoodapi.main:app --reload --host 0.0.0.0 --port 8000"
+    container_name: main-app
     ports:
       - 8000:8000
+    depends_on:
+      - db
+    environment:
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:postgres@db:5432/fast_food_db
+
+  websocket-app:
+    build: .
+    command: >
+      sh -c "uvicorn fastfoodapi.app:app --reload --host 0.0.0.0 --port 8001"
+    container_name: websocket-app
+    ports:
+      - 8001:8001
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

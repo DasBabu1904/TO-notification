@@ -1,37 +1,20 @@
-from sqlalchemy import create_engine, MetaData
-from sqlalchemy.orm import (
-    scoped_session,
-    sessionmaker,
-    mapper,
-    relation,
-    backref,
-    synonym,
-    column_property,
-    relationship,
-)
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from time import sleep
-from sqlalchemy.sql import select, insert
-from sqlalchemy.ext.automap import automap_base
 import random
+from models import Order
+from meta import Base
 
-db_url = "postgresql://food_user:password@localhost/fast_food_db"
+# Use environment variable or default to localhost
+db_url = os.getenv('SQLALCHEMY_DATABASE_URI', 'postgresql://postgres:postgres@localhost:5432/fast_food_db')
 engine = create_engine(db_url, echo=True)
-metadata = MetaData(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-SessionLocal.configure(bind=engine)
-Base = automap_base()
-
-
-class Order(Base):
-    __tablename__ = "orders"
-
-
-Base.prepare(engine, reflect=True)
 
 db = SessionLocal()
 products = [
     "French Fries",
-    "Hamburguer",
+    "Hamburguer", 
     "Nachos",
     "Soda",
     "Milkshake",
@@ -40,11 +23,17 @@ products = [
     "Salad",
 ]
 qty = [1, 2, 3, 4, 5, 6, 7, 8, 9, 12]
+
+print(f"Connecting to: {db_url}")
+print("Starting order generation...")
+
 for num in range(1, 200):
-    order = Order()
-    order.name = random.choice(products)
-    order.price = random.choice(qty) * num
-    order.quantity = random.choice(qty)
+    order = Order(
+        name=random.choice(products),
+        price=random.choice(qty) * num,
+        quantity=random.choice(qty)
+    )
     db.add(order)
     db.commit()
+    print(f"Created order {num}: {order.name} - ${order.price} x {order.quantity}")
     sleep(5)

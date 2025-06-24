@@ -9,10 +9,32 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from starlette.websockets import WebSocket
 from pydantic import BaseModel
 from .config import settings
+from sqlalchemy import create_engine, text
 
 app = FastAPI()
 
-templates = Jinja2Templates(directory="templates")
+@app.get("/health/db")
+def check_db():
+    try:
+        engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "connected", "database": "postgresql"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/orders")
+def get_orders():
+    try:
+        engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM orders LIMIT 10"))
+            orders = [dict(row._mapping) for row in result]
+            return {"orders": orders, "count": len(orders)}
+    except Exception as e:
+        return {"error": str(e)}
+
+templates = Jinja2Templates(directory="fastfoodapi/templates")
 
 #pydantic model 
 class Order(BaseModel):
